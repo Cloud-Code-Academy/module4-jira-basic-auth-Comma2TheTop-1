@@ -64,7 +64,22 @@ public class JiraCalloutQueueable implements Queueable, Database.AllowsCallouts 
 	 */
 	public void execute(QueueableContext context) {
 		// Your implementation goes here
+		try{
+		if(calloutType == TYPE_PROJECT && projectWrapper != null){
+			String jiraProjectId = JiraAPIService.createProject(projectWrapper);
+			if(jiraProjectId != null) {
+				updateJiraProject(jiraProjectId);
+			}
+		} else if(calloutType == TYPE_ISSUE && issueWrapper != null) {
+			String jiraIssueKey = JiraAPIService.createIssue(issueWrapper);
+			if(jiraIssueKey != null) {
+				updateJiraIssue(jiraIssueKey);
+			}
+		}
+	} catch (Exception e) {
+		System.debug('It done messed up: ' + e.getMessage());
 	}
+}
 
 	/**
 	 * Update the Jira Project record with the Jira project Id
@@ -74,6 +89,16 @@ public class JiraCalloutQueueable implements Queueable, Database.AllowsCallouts 
 	 */
 	private void updateJiraProject(String jiraProjectId) {
 		// Your implementation goes here
+		try{
+		Jira_Project__c projectToUpdate = [
+			SELECT Id, Project_ID__c FROM Jira_Project__c WHERE Id = :recordId LIMIT 1
+		];
+		projectToUpdate.Project_ID__c = jiraProjectId;
+		update projectToUpdate;
+		} catch (Exception ex) {
+			System.debug('Couldn\'t find any record with that query: ' + ex.getMessage());
+		}
+
 	}
 
 	/**
@@ -85,5 +110,13 @@ public class JiraCalloutQueueable implements Queueable, Database.AllowsCallouts 
 	 */
 	private void updateJiraIssue(String jiraIssueKey) {
 		// Your implementation goes here
+		Jira_Issue__c issueToUpdate = [
+			SELECT Id, Issue_Key__c, Last_Updated__c FROM Jira_Issue__c WHERE Id = :recordId LIMIT 1
+		];
+		issueToUpdate.Issue_Key__c = jiraIssueKey;
+		issueToUpdate.Last_Updated__c = System.now();
+		update issueToUpdate;
+
+
 	}
 }
